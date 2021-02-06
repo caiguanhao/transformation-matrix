@@ -1,0 +1,220 @@
+<html>
+<head>
+<title>TransformationMatrix</title>
+<style>
+.container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 240px;
+  height: 240px;
+  background: #eee;
+}
+
+.group {
+  margin-bottom: 10px;
+}
+
+.screen {
+  position: relative;
+  background: #ccc;
+  width: 192px;
+  height: 108px
+}
+
+.dot {
+  position: absolute;
+  background: #000;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+}
+
+.circle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  outline: 1px solid #f00;
+}
+
+pre {
+  font-size: 20px;
+}
+</style>
+</head>
+
+<body>
+<table>
+  <tr>
+    <td>
+      <div class="container" id="container" style="transform: scale(1, 1)">
+        <div class="screen" id="screen" style="transform: rotate(0deg)">
+          <div class="dot" id="dot"></div>
+          <div class="circle" id="circle"></div>
+        </div>
+      </div>
+    </td>
+    <td>
+      <div class="group">
+        X = <input type="number" id="x" value="300" onchange="compute()"><br>
+      </div>
+      <div class="group">
+        Y = <input type="number" id="y" value="100" onchange="compute()"><br>
+      </div>
+      <div class="group">
+        <button id="rotatel">Rotate Left</button>
+        <button id="rotater">Rotate Right</button>
+      </div>
+      <div class="group">
+        <button id="fliph">Flip Horizontally</button>
+        <button id="flipv">Flip Vertically</button>
+      </div>
+      <div class="group">
+        <pre id="tm"></pre>
+      </div>
+      <div class="group">
+        <pre id="f"></pre>
+      </div>
+    </td>
+  </tr>
+</table>
+
+<script>
+var container = document.getElementById('container')
+var screen = document.getElementById('screen')
+var dot = document.getElementById('dot')
+var circle = document.getElementById('circle')
+
+document.getElementById('rotatel').addEventListener('click', function () {
+  screen.style.transform = screen.style.transform.replace(/(rotate\()([0-9-]+)/, function (_, p1, p2) {
+    return p1 + (parseInt(p2) - 90) % 360
+  })
+  compute()
+})
+
+document.getElementById('rotater').addEventListener('click', function () {
+  screen.style.transform = screen.style.transform.replace(/(rotate\()([0-9-]+)/, function (_, p1, p2) {
+    return p1 + (parseInt(p2) + 90) % 360
+  })
+  compute()
+})
+
+document.getElementById('fliph').addEventListener('click', function () {
+  container.style.transform = container.style.transform.replace(/(scale\()([0-9-]+)(,\s+)([0-9-]+)/, function (_, p1, p2, p3, p4) {
+    if (p2 === '-1') {
+      p2 = '1'
+    } else {
+      p2 = '-1'
+    }
+    return p1 + p2 + p3 + p4
+  })
+  compute()
+})
+
+document.getElementById('flipv').addEventListener('click', function () {
+  container.style.transform = container.style.transform.replace(/(scale\()([0-9-]+)(,\s+)([0-9-]+)/, function (_, p1, p2, p3, p4) {
+    if (p4 === '-1') {
+      p4 = '1'
+    } else {
+      p4 = '-1'
+    }
+    return p1 + p2 + p3 + p4
+  })
+  compute()
+})
+
+function compute () {
+  var oox = parseInt(document.getElementById('x').value)
+  var ooy = parseInt(document.getElementById('y').value)
+  var ox = oox / 10
+  var oy = ooy / 10
+  dot.style.left = ox + 'px'
+  dot.style.top = oy + 'px'
+  var sr = screen.getBoundingClientRect()
+  var dr = dot.getBoundingClientRect()
+  var x1 = dr.x - sr.x
+  var x2 = (dr.x - sr.x) - (sr.width - dr.width) + 1
+  var x, y
+  if (Math.abs(x1) < Math.abs(x2)) {
+    x = x1
+  } else {
+    x = x2
+  }
+  var y1 = dr.y - sr.y
+  var y2 = (dr.y - sr.y) - (sr.height - dr.height) + 1
+  if (Math.abs(y1) < Math.abs(y2)) {
+    y = y1
+  } else {
+    y = y2
+  }
+  var a = [ -1, 0, 1 ]
+  var b = [ -1, 0, 1 ]
+  var c = [ -1, 0, 1 ]
+  var matrix = []
+  outer:
+  for (var i = 0; i < a.length; i++) {
+    for (var j = 0; j < b.length; j++) {
+      for (var k = 0; k < c.length; k++) {
+        if (a[i] * x + b[j] * y + c[k] === ox) {
+          matrix = matrix.concat([ a[i], b[j], c[k] ])
+          break outer
+        }
+      }
+    }
+  }
+  outer:
+  for (var i = 0; i < a.length; i++) {
+    for (var j = 0; j < b.length; j++) {
+      for (var k = 0; k < c.length; k++) {
+        if (a[i] * x + b[j] * y + c[k] === oy) {
+          matrix = matrix.concat([ a[i], b[j], c[k] ])
+          break outer
+        }
+      }
+    }
+  }
+  matrix = matrix.concat([ 0, 0, 1 ])
+  var l = matrix[0] * ox + matrix[1] * oy + 0
+  var t = matrix[3] * ox + matrix[4] * oy + 0
+  if (l >= 0) {
+    circle.style.left = l + 'px'
+    circle.style.right = null
+  } else {
+    circle.style.left = null
+    circle.style.right = Math.abs(l) + 'px'
+  }
+  if (t >= 0) {
+    circle.style.top = t + 'px'
+    circle.style.bottom = null
+  } else {
+    circle.style.top = null
+    circle.style.bottom = Math.abs(t) + 'px'
+  }
+  var tm = 'Option "TransformationMatrix" "'
+  for (var i = 0; i < matrix.length; i++) {
+    if (i > 0) {
+      tm += ' '
+    }
+    if (i < 6) {
+      tm += $c(matrix[i], i)
+    } else {
+      tm += matrix[i]
+    }
+  }
+  tm += '"'
+  document.getElementById('tm').innerHTML = tm
+  document.getElementById('f').innerHTML = $c(matrix[0], 0) + ' * ' + oox + ' + ' + $c(matrix[1], 1) + ' * ' + ooy +
+    ' + ' + $c(matrix[2], 2) + ' => ' + (matrix[0] * oox + matrix[1] * ooy + matrix[2]) + '\n' +
+    $c(matrix[3], 3) + ' * ' + oox + ' + ' + $c(matrix[4], 4) + ' * ' + ooy + ' + ' + $c(matrix[5], 5) + ' => ' +
+    (matrix[3] * oox + matrix[4] * ooy + matrix[5])
+}
+
+function $c (text, n) {
+  var color = [ 'red', 'purple', 'lime', 'olive', 'blue', 'teal' ][n]
+  return '<font color="' + color + '">' + text + '</font>'
+}
+
+compute()
+</script>
+</body>
+</html>
